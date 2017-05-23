@@ -1,0 +1,24 @@
+{
+  "name": "set-state",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "tape test/**/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AutoSponge/set-state.git"
+  },
+  "keywords": [],
+  "author": "Paul <pgrenier@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/AutoSponge/set-state/issues"
+  },
+  "homepage": "https://github.com/AutoSponge/set-state#readme",
+  "devDependencies": {
+    "prettier-standard": "^5.0.0",
+    "tape": "^4.6.3"
+  }
+}
