@@ -1,14 +1,15 @@
 {
   "name": "set-state",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.0.0-development",
+  "description": "simple state management",
   "main": "index.js",
   "scripts": {
-    "test": "tape test/**/*.js"
+    "test": "tape test/**/*.js",
+    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AutoSponge/set-state.git"
+    "url": "https://github.com/AutoSponge/set-state.git"
   },
   "keywords": [],
   "author": "Paul <pgrenier@gmail.com>",
@@ -19,6 +20,7 @@
   "homepage": "https://github.com/AutoSponge/set-state#readme",
   "devDependencies": {
     "prettier-standard": "^5.0.0",
+    "semantic-release": "^6.3.6",
     "tape": "^4.6.3"
   }
 }
