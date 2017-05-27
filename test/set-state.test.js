@@ -14,7 +14,7 @@ test('set-state with no arguments', t => {
   t.equal(node(), undefined)
 })
 
-test('set-state()#on()', t => {
+test('set-state().on()', t => {
   t.plan(3)
   const node = state(0)
   const cancel = node.on(value => t.equal(value, 1))
@@ -107,7 +107,7 @@ test('set-state calculates and emits once', t => {
   t.equal(calculate.count, 2, 'abc only calculates once when a changes')
 })
 
-test('set-state .toJSON()', t => {
+test('set-state().toJSON()', t => {
   t.plan(1)
   const n = state(0)
   const b = state(false)
@@ -142,4 +142,113 @@ test('set-state .toJSON()', t => {
   "$date": "1970-01-01T00:00:00.000Z"
 }`
   )
+})
+
+test('set-state().map(fn) returns state(() => fn(n))', t => {
+  t.plan(2)
+  const g = state(0)
+  const f = g.map(n => n + 1)
+  t.equal(f(), 1)
+  g(1)
+  t.equal(f(), 2)
+})
+
+test('set-state().end() will stop updating dependents', t => {
+  t.plan(4)
+  const g = state(0)
+  const f = state(() => g() + 1)
+  t.equal(f(), 1)
+  g(1)
+  t.equal(f(), 2)
+  g.end()
+  g(2)
+  t.equal(g(), 1)
+  t.equal(f(), 2)
+})
+
+test('set-state(set-state.END) is desugared .end()', t => {
+  t.plan(4)
+  const g = state(0)
+  const f = state(() => g() + 1)
+  t.equal(f(), 1)
+  g(1)
+  t.equal(f(), 2)
+  g(state.END)
+  g(2)
+  t.equal(g(), 1)
+  t.equal(f(), 2)
+})
+
+test('set-state.merge(arr) returns state(() => [...arr()])', t => {
+  t.plan(2)
+  const a = state('hello')
+  const b = state('world')
+  const greeting = state.merge([a, b]).map(values => {
+    return values.join(' ')
+  })
+  t.equal(greeting(), 'hello world')
+  b('everybody')
+  t.equal(greeting(), 'hello everybody')
+})
+
+test('set-state(a).concat(arr) returns state(() => [a(), ...arr()])', t => {
+  t.plan(2)
+  const a = state('hello')
+  const b = state('world')
+  const greeting = a.concat(b).map(values => values.join(' '))
+  t.equal(greeting(), 'hello world')
+  a('goodbye')
+  b('everybody')
+  t.equal(greeting(), 'goodbye everybody')
+})
+
+test('set-state.combine({a}) returns state(() => {a: a()})', t => {
+  t.plan(2)
+  const a = state(1)
+  const b = state(() => a() + 1)
+  const combined = state.combine({ a, b })
+  t.deepEqual(combined(), { a: 1, b: 2 })
+  b(3)
+  t.deepEqual(combined(), { a: 1, b: 3 })
+})
+
+test('set-state(a).ap(state(b:fn)) returns state(() => b()(a()))', t => {
+  t.plan(3)
+  const a = state(1)
+  const b = state(() => a => a + 1)
+  const ap = a.ap(b)
+  t.equal(ap(), 2, '1 + 1')
+  a(2)
+  t.equal(ap(), 3, '2 + 1')
+  b(() => a => a * a)
+  t.equal(ap(), 4, '2 * 2')
+})
+
+test('set-state().reduce(fn, a) returns state(() => b(fn(b(), a())))', t => {
+  t.plan(2)
+  const n = state(0)
+  const count = n.reduce(total => total + 1, 0)
+  t.equal(count(), 1, 'count should calculate once when created')
+  n(5)
+  t.equal(count(), 2, 'count should ignore the value of n')
+})
+
+test('set-state().reduce(fn, state(a)) returns state(() => b(fn(b(), a())))', t => {
+  t.plan(2)
+  const n = state(0)
+  const count = n.reduce(total => total + 1, state(0))
+  t.equal(count(), 1)
+  n(5)
+  t.equal(count(), 2)
+})
+
+test('set-state().reduce(fn) returns state(() => b(fn(b(), state())))', t => {
+  t.plan(3)
+  const input = state('')
+  const strBuilder = input.reduce((prev = '', next) => prev + next)
+  t.equal(strBuilder(), '')
+  input('fizz')
+  t.equal(strBuilder(), 'fizz')
+  input('buzz')
+  t.equal(strBuilder(), 'fizzbuzz')
 })
