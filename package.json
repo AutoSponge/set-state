@@ -4,7 +4,9 @@
   "description": "simple state management",
   "main": "index.js",
   "scripts": {
-    "test": "tape test/**/*.js",
+    "test": "nyc tape test/**/*.js",
+    "cover": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
+    "cover:dev": "nyc report --reporter=html",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
   "repository": {
@@ -19,6 +21,8 @@
   },
   "homepage": "https://github.com/AutoSponge/set-state#readme",
   "devDependencies": {
+    "codecov": "^2.2.0",
+    "nyc": "^10.3.2",
     "prettier-standard": "^5.0.0",
     "semantic-release": "^6.3.6",
     "tape": "^4.6.3"

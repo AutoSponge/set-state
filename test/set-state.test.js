@@ -179,6 +179,16 @@ test('set-state(set-state.END) is desugared .end()', t => {
   t.equal(f(), 2)
 })
 
+test('set-state.freeze(a) returns state(a).end()', t => {
+  t.plan(3)
+  const g = state(0)
+  const f = state.end(() => g() + 1)
+  t.equal(f(), 1)
+  g(2)
+  t.equal(g(), 2)
+  t.equal(f(), 1)
+})
+
 test('set-state.merge(arr) returns state(() => [...arr()])', t => {
   t.plan(2)
   const a = state('hello')
@@ -242,7 +252,7 @@ test('set-state().reduce(fn, state(a)) returns state(() => b(fn(b(), a())))', t 
   t.equal(count(), 2)
 })
 
-test('set-state().reduce(fn) returns state(() => b(fn(b(), state())))', t => {
+test('set-state(a).reduce(fn) returns state(() => b(fn(b(), a))', t => {
   t.plan(3)
   const input = state('')
   const strBuilder = input.reduce((prev = '', next) => prev + next)
@@ -251,4 +261,52 @@ test('set-state().reduce(fn) returns state(() => b(fn(b(), state())))', t => {
   t.equal(strBuilder(), 'fizz')
   input('buzz')
   t.equal(strBuilder(), 'fizzbuzz')
+})
+
+test('set-state(a) implements toString and valueOf', t => {
+  t.plan(2)
+  const a = state(1)
+  a(2)
+  t.equal(a.valueOf(), 2)
+  t.equal(a + '', '2')
+})
+
+test('set-state(a).flatMap returns state(() => [...a].map(fn))', t => {
+  t.plan(2)
+  const list = state([{ b: [1, 2] }, { b: [3, 4] }])
+  const flat = list.flatMap(a => a.b)
+  t.deepEqual(flat(), [1, 2, 3, 4])
+  list([{ b: [1] }, { b: [3] }, { b: [5] }])
+  t.deepEqual(flat(), [1, 3, 5])
+})
+
+test('set-state(a).pluck(path) returns state(() => a[path])', t => {
+  t.plan(2)
+  const obj = state({ a: { b: { c: 'hello' } } })
+  const pluckedStr = obj.pluck('a.b.c')
+  const pluckedArr = obj.pluck(['a', 'b', 'c'])
+  t.equal(pluckedStr(), 'hello')
+  t.equal(pluckedArr(), 'hello')
+})
+
+test('set-state(a).seal() prevents direct updates', t => {
+  t.plan(3)
+  const a = state(1)
+  const b = state(() => a() + 1).seal()
+  t.equal(b(), 2)
+  b(0)
+  t.equal(b(), 2)
+  a(-1)
+  t.equal(b(), 0)
+})
+
+test('set-state.seal(a) returns state(a).seal()', t => {
+  t.plan(3)
+  const a = state(1)
+  const b = state.seal(() => a() + 1)
+  t.equal(b(), 2)
+  b(0)
+  t.equal(b(), 2)
+  a(-1)
+  t.equal(b(), 0)
 })

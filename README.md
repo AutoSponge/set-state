@@ -72,15 +72,22 @@ noise('woops')
 API
 
 ```js
+state(a).pluck(path) // acts like a cursor for a(), path can be str or arr 
 state(a).map(fn) // state(() => fn(a()))
+state(a).flatMap(fn) // state(() => [].concat(...a().map(fn))
+state(a).mapcat(fn) // alias for flatMap
 state(a).concat(b, ...c) // state(() => [a(), b(), ...c()])
 state(a).reduce(fn, b) // state(() => b(fn(b(), a()))), b is optional
-// applicative is similar to map but b is state(() => fn)
-state(a).ap(b) // state(() => b()(a()))
-state(a).end() // state(a) will no longer update, the value is still a
+state(a).ap(b) // state(() => b()(a())); applicative is similar to map but b is state(() => fn)
+state(a).freeze() // state(a) will no longer update, the value is still a
+state(a).end() // alias for freeze
+state(a).seal() // state(a) will be read-only but continue to update
 
 // statics
 state.merge([...arr]) // state(() => [...arr()])
 state.combine({a, b}) // state(() => {a: a(), b: b()})
-state(a)(state.END) // state(a) will no longer update, the value is still a
+state.of(a) // state(a)
+state.freeze(a) // state(a) will no longer update, the value is still a
+state.end(a) // alias for freeze
+state.seal(a) // state(a) will be read-only but continue to update
 ```
