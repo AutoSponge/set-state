@@ -337,6 +337,14 @@ test('set-state(a).pluck(path) returns state(() => a[path])', t => {
   t.equal(pluckedArr(), undefined)
 })
 
+test('set-state(a).pluck(path) is quiet', t => {
+  t.plan(1)
+  const obj = state()
+  obj.pluck('a.b.c').on((n) => t.equal(n, 'hello'))
+  obj({ a: { b: { c: 'hello' } } })
+  obj({ a: { b: { c: 'hello', d: 'world' } } })
+})
+
 test('set-state(a).seal() prevents direct updates', t => {
   t.plan(3)
   const a = state(1)

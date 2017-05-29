@@ -15,8 +15,11 @@ const get = (obj, path) =>
   split(path).reduce((val, key) => val && val[key], obj)
 const toJSON = x => (x.toJSON === undefined ? x : x.toJSON())
 const recompute = node => {
+  const prev = node.value
   node.value = node.compute()
-  node.listeners.forEach(fn => fn(node.value))
+  if (prev !== node.value) {
+    node.listeners.forEach(fn => fn(node.value))
+  }
 }
 const update = node => {
   if (updating.has(node)) updating.delete(node)
