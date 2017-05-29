@@ -90,4 +90,5 @@ state.of(a) // state(a)
 state.freeze(a) // state(a) will no longer update, the value is still a
 state.end(a) // alias for freeze
 state.seal(a) // state(a) will be read-only but continue to update
+state.isNode(a) // Boolean
 ```

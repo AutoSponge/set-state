@@ -2,8 +2,12 @@ const capturing = new Set()
 const updating = new Set()
 const END = Symbol('set-state:end')
 const GUARD = Symbol('set-state:guard')
+const NODE = Symbol('set-state:node')
 let isCapturing = false
 const isPrimitive = x => Object(x) !== x
+const isFunction = x => typeof x === 'function'
+const isNode = x => isFunction(x) && x.is === NODE
+const getValue = f => (isNode(f) ? f() : f)
 const split = obj => (obj.split ? obj.split('.') : obj)
 const get = (obj, path) =>
   split(path).reduce((val, key) => val && val[key], obj)
@@ -21,6 +25,7 @@ const eachDep = (node, method) =>
   node.dependencies.forEach(dep => dep.dependents[method](node))
 
 const state = compute => {
+  if (isNode(compute)) return compute
   const node = new_compute => {
     if (isCapturing) capturing.add(node)
     if (node.compute === END || node.sealed === GUARD) return node.value
@@ -36,7 +41,7 @@ const state = compute => {
         return node
       }
       node.compute = () => new_compute
-      if (typeof new_compute === 'function') {
+      if (isFunction(new_compute)) {
         node.compute = new_compute
         isCapturing = true
         capturing.clear()
@@ -54,6 +59,7 @@ const state = compute => {
     }
     return node.value
   }
+  node.is = NODE
   node.listeners = new Set()
   node.dependents = new Set()
   node.dependencies = new Set()
@@ -63,7 +69,8 @@ const state = compute => {
   }
   node.ap = a => state(() => a()(node()))
   node.map = fn => state(() => fn(node()))
-  node.concat = (...arr) => state(() => [node, ...arr].map(f => f()))
+  node.concat = (...arr) =>
+    state(() => [node, ...arr].map(getValue))
   node.flatMap = node.mapcat = fn => state(() => [].concat(...node().map(fn)))
   node.reduce = (fn, a) => {
     const $a = state(a)
@@ -81,13 +88,14 @@ const state = compute => {
 }
 state.END = END
 state.GUARD = GUARD
+state.isNode = isNode
 state.freeze = state.end = a => state(a).end()
 state.seal = a => state(a).seal()
-state.merge = arr => state(() => arr.map(f => f()))
+state.merge = arr => state(() => arr.map(getValue))
 state.combine = nodes =>
   state(() =>
     Object.entries(nodes).reduce((o, [k, v]) => {
-      o[k] = v()
+      o[k] = isNode(v) ? v() : v
       return o
     }, {})
   )

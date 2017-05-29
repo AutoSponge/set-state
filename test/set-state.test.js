@@ -201,6 +201,19 @@ test('set-state.merge(arr) returns state(() => [...arr()])', t => {
   t.equal(greeting(), 'hello everybody')
 })
 
+test('set-state.merge(arr) only executes set-state fns', t => {
+  t.plan(2)
+  const a = x => x + '!'
+  const b = state('hello')
+  const c = 'world'
+  const greeting = state.merge([a, b, c]).map(([fn, ...values]) => {
+    return fn(values.join(' '))
+  })
+  t.equal(greeting(), 'hello world!')
+  b('goodbye')
+  t.equal(greeting(), 'goodbye world!')
+})
+
 test('set-state(a).concat(arr) returns state(() => [a(), ...arr()])', t => {
   t.plan(2)
   const a = state('hello')
@@ -220,6 +233,17 @@ test('set-state.combine({a}) returns state(() => {a: a()})', t => {
   t.deepEqual(combined(), { a: 1, b: 2 })
   b(3)
   t.deepEqual(combined(), { a: 1, b: 3 })
+})
+
+test('set-state.combine() only executes set-state fns', t => {
+  t.plan(2)
+  const a = state(1)
+  const b = () => a() + 1
+  const c = 2
+  const combined = state.combine({ a, b, c })
+  t.deepEqual(combined(), { a: 1, b: b, c: 2 })
+  a(3)
+  t.deepEqual(combined(), { a: 3, b: b, c: 2 })
 })
 
 test('set-state(a).ap(state(b:fn)) returns state(() => b()(a()))', t => {
