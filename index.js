@@ -27,9 +27,10 @@ const eachDep = (node, method) =>
 const state = compute => {
   if (isNode(compute)) return compute
   const node = new_compute => {
-    if (isCapturing) capturing.add(node)
+    if (isCapturing) capturing.add(node)    
     if (node.compute === END || node.sealed === GUARD) return node.value
     if (new_compute !== undefined) {
+      if (new_compute === node.value) return node
       if (new_compute === GUARD) {
         node.sealed = GUARD
         return node

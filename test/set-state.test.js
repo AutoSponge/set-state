@@ -107,6 +107,17 @@ test('set-state calculates and emits once', t => {
   t.equal(calculate.count, 2, 'abc only calculates once when a changes')
 })
 
+test('set-state does not emit when value is equal', t => {
+  t.plan(2)
+  const a = state(0)
+  const b = state(() => a() + 1)
+  a.on(() => t.equal(a(), 1))
+  b.on(() => t.equal(b(), 2))
+  a(1)
+  a(1)
+  a(1)
+})
+
 test('set-state().toJSON()', t => {
   t.plan(1)
   const n = state(0)
