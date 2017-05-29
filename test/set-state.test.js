@@ -15,7 +15,7 @@ test('set-state with no arguments', t => {
 })
 
 test('set-state().on()', t => {
-  t.plan(3)
+  t.plan(5)
   const node = state(0)
   const cancel = node.on(value => t.equal(value, 1))
   t.equal(typeof cancel, 'function')
@@ -23,6 +23,13 @@ test('set-state().on()', t => {
   node(1)
   cancel()
   node(2)
+  const bound = state()
+  const obj = {value: bound, setValue: function (n) {return this.value(n)}}
+  const input = state(0)
+  input.on(obj, 'setValue')
+  t.equal(obj.value(), undefined)
+  input(1)
+  t.equal(obj.value(), 1)
 })
 
 test('set-state with non-function argument', t => {
@@ -316,12 +323,18 @@ test('set-state(a).flatMap returns state(() => [...a].map(fn))', t => {
 })
 
 test('set-state(a).pluck(path) returns state(() => a[path])', t => {
-  t.plan(2)
+  t.plan(6)
   const obj = state({ a: { b: { c: 'hello' } } })
   const pluckedStr = obj.pluck('a.b.c')
   const pluckedArr = obj.pluck(['a', 'b', 'c'])
   t.equal(pluckedStr(), 'hello')
   t.equal(pluckedArr(), 'hello')
+  obj({ a: { b: { c: 'goodbye' } } })
+  t.equal(pluckedStr(), 'goodbye')
+  t.equal(pluckedArr(), 'goodbye')
+  obj({ a: {} })
+  t.equal(pluckedStr(), undefined)
+  t.equal(pluckedArr(), undefined)
 })
 
 test('set-state(a).seal() prevents direct updates', t => {
@@ -345,3 +358,32 @@ test('set-state.seal(a) returns state(a).seal()', t => {
   a(-1)
   t.equal(b(), 0)
 })
+
+test('projections of state should be sealed', t => {
+  t.plan(10)
+  const a = state(0)
+  const b = state(() => n => n)
+  const c = state([1])
+  t.false(state.isSealed(a))
+  t.false(state.isSealed(b))
+  t.true(state.isSealed(a.map(n => n + 1)))
+  t.true(state.isSealed(a.ap(b)))
+  t.true(state.isSealed(a.concat(b)))
+  t.true(state.isSealed(a.reduce(n => n + 1)))
+  t.true(state.isSealed(a.pluck([])))
+  t.true(state.isSealed(c.flatMap(n => n + 1)))
+  t.true(state.isSealed(state.combine({a, b})))
+  t.true(state.isSealed(state.merge([a, b])))
+})
+
+test('isFrozen', t => {
+  t.plan(3)
+  const a = state(0)
+  const b = state(1)
+  t.false(state.isFrozen(a))
+  a(state.END)
+  t.true(state.isFrozen(a))
+  b.freeze()
+  t.true(state.isFrozen(b))
+})
+

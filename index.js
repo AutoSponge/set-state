@@ -7,6 +7,8 @@ let isCapturing = false
 const isPrimitive = x => Object(x) !== x
 const isFunction = x => typeof x === 'function'
 const isNode = x => isFunction(x) && x.is === NODE
+const isSealed = x => isNode(x) && x.sealed === GUARD
+const isFrozen = x => isNode(x) && x.compute === END
 const getValue = f => (isNode(f) ? f() : f)
 const split = obj => (obj.split ? obj.split('.') : obj)
 const get = (obj, path) =>
@@ -28,7 +30,7 @@ const state = compute => {
   if (isNode(compute)) return compute
   const node = new_compute => {
     if (isCapturing) capturing.add(node)    
-    if (node.compute === END || node.sealed === GUARD) return node.value
+    if (isFrozen(node) || isSealed(node)) return node.value
     if (new_compute !== undefined) {
       if (new_compute === node.value) return node
       if (new_compute === GUARD) {
@@ -64,21 +66,22 @@ const state = compute => {
   node.listeners = new Set()
   node.dependents = new Set()
   node.dependencies = new Set()
-  node.on = fn => {
+  node.on = (obj, method) => {
+    const fn = isFunction(obj) ? obj : obj[method].bind(obj)
     node.listeners.add(fn)
     return () => node.listeners.delete(fn)
   }
-  node.ap = a => state(() => a()(node()))
-  node.map = fn => state(() => fn(node()))
+  node.ap = a => state(() => a()(node())).seal()
+  node.map = fn => state(() => fn(node())).seal()
   node.concat = (...arr) =>
-    state(() => [node, ...arr].map(getValue))
-  node.flatMap = node.mapcat = fn => state(() => [].concat(...node().map(fn)))
+    state(() => [node, ...arr].map(getValue)).seal()
+  node.flatMap = node.mapcat = fn => state(() => [].concat(...node().map(fn))).seal()
   node.reduce = (fn, a) => {
     const $a = state(a)
     $a(() => fn($a(), node()))
-    return $a
+    return $a.seal()
   }
-  node.pluck = path => state(() => get(node(), path))
+  node.pluck = path => state(() => get(node(), path)).seal()
   node.seal = () => node(GUARD)
   node.freeze = node.end = () => node(END)
   node.valueOf = node.toString = () => node.value
@@ -90,15 +93,17 @@ const state = compute => {
 state.END = END
 state.GUARD = GUARD
 state.isNode = isNode
+state.isSealed = isSealed
+state.isFrozen = state.isFinished = isFrozen
 state.freeze = state.end = a => state(a).end()
 state.seal = a => state(a).seal()
-state.merge = arr => state(() => arr.map(getValue))
+state.merge = arr => state(() => arr.map(getValue)).seal()
 state.combine = nodes =>
   state(() =>
     Object.entries(nodes).reduce((o, [k, v]) => {
       o[k] = isNode(v) ? v() : v
       return o
     }, {})
-  )
+  ).seal()
 state.of = state
 module.exports = state
