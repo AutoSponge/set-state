@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/AutoSponge/set-state.svg?branch=master)](https://travis-ci.org/AutoSponge/set-state)
+
 # set-state
 
 Heavily inspired by [PureState](https://github.com/MaiaVictor/PureState), `set-state` 
