@@ -14,8 +14,15 @@ test('set-state with no arguments', t => {
   t.equal(node(), undefined)
 })
 
+test('set-state().thunk()', t => {
+  t.plan(1)
+  const node = state()
+  t.equal(node.thunk(), node, '#thunk() is Identity')
+})
+
 test('set-state().on()', t => {
-  t.plan(5)
+  t.plan(8)
+  let count = 0
   const node = state(0)
   const cancel = node.on(value => t.equal(value, 1))
   t.equal(typeof cancel, 'function')
@@ -24,12 +31,19 @@ test('set-state().on()', t => {
   cancel()
   node(2)
   const bound = state()
-  const obj = {value: bound, setValue: function (n) {return this.value(n)}}
+  const obj = {value: bound, setValue: function (n) {
+    count++
+    return this.value(n)
+  }}
   const input = state(0)
   input.on(obj, 'setValue')
   t.equal(obj.value(), undefined)
+  t.equal(count, 0)
   input(1)
   t.equal(obj.value(), 1)
+  t.equal(count, 1)
+  input(1)
+  t.equal(count, 1)
 })
 
 test('set-state with non-function argument', t => {
@@ -323,10 +337,12 @@ test('set-state(a).flatMap returns state(() => [...a].map(fn))', t => {
 })
 
 test('set-state(a).pluck(path) returns state(() => a[path])', t => {
-  t.plan(6)
+  t.plan(7)
   const obj = state({ a: { b: { c: 'hello' } } })
+  const pluckUndef = obj.pluck()
   const pluckedStr = obj.pluck('a.b.c')
   const pluckedArr = obj.pluck(['a', 'b', 'c'])
+  t.equal(pluckUndef(), obj)
   t.equal(pluckedStr(), 'hello')
   t.equal(pluckedArr(), 'hello')
   obj({ a: { b: { c: 'goodbye' } } })
@@ -343,6 +359,16 @@ test('set-state(a).pluck(path) is quiet', t => {
   obj.pluck('a.b.c').on((n) => t.equal(n, 'hello'))
   obj({ a: { b: { c: 'hello' } } })
   obj({ a: { b: { c: 'hello', d: 'world' } } })
+})
+
+test('set-state(a).either(f, g)', t => {
+  t.plan(4)
+  const gt10 = n => n > 10
+  const even = n => n % 2 === 0
+  t.equal(state(3), false)
+  t.equal(state(12), true)
+  t.equal(state(11), true)
+  t.equal(state(2), true)
 })
 
 test('set-state(a).seal() prevents direct updates', t => {
@@ -382,6 +408,7 @@ test('projections of state should be sealed', t => {
   t.true(state.isSealed(c.flatMap(n => n + 1)))
   t.true(state.isSealed(state.combine({a, b})))
   t.true(state.isSealed(state.merge([a, b])))
+  t.true(state.isSealed(a.either(n => n, () => 2)))
 })
 
 test('isFrozen', t => {

@@ -10,9 +10,13 @@ const isNode = x => isFunction(x) && x.is === NODE
 const isSealed = x => isNode(x) && x.sealed === GUARD
 const isFrozen = x => isNode(x) && x.compute === END
 const getValue = f => (isNode(f) ? f() : f)
-const split = obj => (obj.split ? obj.split('.') : obj)
-const get = (obj, path) =>
-  split(path).reduce((val, key) => val && val[key], obj)
+const get = (obj, key = [], p = 0) => {
+  key = key.split ? key.split('.') : key
+  while (obj && p < key.length) {
+    obj = obj[key[p++]]
+  }
+  return obj
+}
 const toJSON = x => (x.toJSON === undefined ? x : x.toJSON())
 const recompute = node => {
   const prev = node.value
@@ -32,7 +36,7 @@ const eachDep = (node, method) =>
 const state = compute => {
   if (isNode(compute)) return compute
   const node = new_compute => {
-    if (isCapturing) capturing.add(node)    
+    if (isCapturing) capturing.add(node)
     if (isFrozen(node) || isSealed(node)) return node.value
     if (new_compute !== undefined) {
       if (new_compute === node.value) return node
@@ -69,6 +73,7 @@ const state = compute => {
   node.listeners = new Set()
   node.dependents = new Set()
   node.dependencies = new Set()
+  node.thunk = () => node
   node.on = (obj, method) => {
     const fn = isFunction(obj) ? obj : obj[method].bind(obj)
     node.listeners.add(fn)
@@ -76,15 +81,16 @@ const state = compute => {
   }
   node.ap = a => state(() => a()(node())).seal()
   node.map = fn => state(() => fn(node())).seal()
-  node.concat = (...arr) =>
-    state(() => [node, ...arr].map(getValue)).seal()
-  node.flatMap = node.mapcat = fn => state(() => [].concat(...node().map(fn))).seal()
+  node.concat = (...arr) => state(() => [node, ...arr].map(getValue)).seal()
+  node.flatMap = node.mapcat = fn =>
+    state(() => [].concat(...node().map(fn))).seal()
   node.reduce = (fn, a) => {
     const $a = state(a)
     $a(() => fn($a(), node()))
     return $a.seal()
   }
   node.pluck = path => state(() => get(node(), path)).seal()
+  node.either = (a, b) => state(() => a(node()) || b(node())).seal()
   node.seal = () => node(GUARD)
   node.freeze = node.end = () => node(END)
   node.valueOf = node.toString = () => node.value
