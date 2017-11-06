@@ -22,16 +22,23 @@ const recompute = node => {
   const prev = node.value
   node.value = node.compute()
   if (prev !== node.value) {
-    node.listeners.forEach(fn => fn(node.value))
+    for (const fn of node.listeners) {
+      fn(node.value)
+    }
   }
 }
 const update = node => {
   if (updating.has(node)) updating.delete(node)
   updating.add(node)
-  node.dependents.forEach(update)
+  for (const dep of node.dependents) {
+    update(dep)
+  }
 }
-const eachDep = (node, method) =>
-  node.dependencies.forEach(dep => dep.dependents[method](node))
+const eachDep = (node, method) => {
+  for (const dep of node.dependencies) {
+    dep.dependents[method](node)
+  }
+}
 
 const state = compute => {
   if (isNode(compute)) return compute
@@ -64,8 +71,12 @@ const state = compute => {
         recompute(node)
       }
       updating.clear()
-      node.dependents.forEach(update)
-      updating.forEach(recompute)
+      for (const dep of node.dependents) {
+        update(dep)
+      }
+      for (const up of updating) {
+        recompute(up)
+      }
     }
     return node.value
   }
