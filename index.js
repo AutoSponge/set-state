@@ -36,10 +36,12 @@ const update = node => {
 }
 const eachDep = (node, method) => {
   for (const dep of node.dependencies) {
+    if (method === 'add' && dep.dependencies.has(node)) {
+      throw new ReferenceError('circular reference created.')
+    }
     dep.dependents[method](node)
   }
 }
-
 const state = compute => {
   if (isNode(compute)) return compute
   const node = new_compute => {
@@ -80,16 +82,45 @@ const state = compute => {
     }
     return node.value
   }
+  // Start CORE API
   node.is = NODE
   node.listeners = new Set()
   node.dependents = new Set()
   node.dependencies = new Set()
-  node.thunk = () => node
+  node.seal = () => node(GUARD)
+  node.freeze = node.end = () => node(END)
+  node.valueOf = node.toString = () => node.value
+  node.toJSON = () =>
+    (isPrimitive(node.value) ? node.value : toJSON(node.value))
   node.on = (obj, method) => {
     const fn = isFunction(obj) ? obj : obj[method].bind(obj)
     node.listeners.add(fn)
     return () => node.listeners.delete(fn)
   }
+  // End CORE API
+
+  // Start EXTENDED API
+  node.push = async (fn, err) => {
+    if (node.dependencies.size > 0) {
+      throw new RangeError('unable to update a node with dependencies')
+    }
+    if (node.pushing) {
+      throw new TypeError('unable to push on node while a push is pending')
+    }
+    node.pushed = node.value
+    node.pushing = fn(node.value)
+    try {
+      node(await node.pushing)
+    } catch (e) {
+      if (err) {
+        err(e)
+      } else {
+        throw new Error(e)
+      }
+    }
+    node.pushing = false
+  }
+  node.thunk = () => node
   node.ap = a => state(() => a()(node())).seal()
   node.map = fn => state(() => fn(node())).seal()
   node.concat = (...arr) => state(() => [node, ...arr].map(getValue)).seal()
@@ -102,19 +133,21 @@ const state = compute => {
   }
   node.pluck = path => state(() => get(node(), path)).seal()
   node.either = (a, b) => state(() => a(node()) || b(node())).seal()
-  node.seal = () => node(GUARD)
-  node.freeze = node.end = () => node(END)
-  node.valueOf = node.toString = () => node.value
-  node.toJSON = () =>
-    (isPrimitive(node.value) ? node.value : toJSON(node.value))
+  // END EXTENDED API
+
   node(compute)
   return node
 }
+
+// CORE statics
 state.END = END
 state.GUARD = GUARD
 state.isNode = isNode
 state.isSealed = isSealed
 state.isFrozen = state.isFinished = isFrozen
+// End CORE statics
+
+// OPTIONAL statics
 state.freeze = state.end = a => state(a).end()
 state.seal = a => state(a).seal()
 state.merge = arr => state(() => arr.map(getValue)).seal()
@@ -126,4 +159,6 @@ state.combine = nodes =>
     }, {})
   ).seal()
 state.of = state
+// End OPTIONAL statics
+
 module.exports = state

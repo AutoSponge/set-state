@@ -74,6 +74,9 @@ noise('woops')
 API
 
 ```js
+// async methods
+state(a).push(a => b<Promise>) // state(b) when b resolves
+
 // creates projections of state(a)
 // all projections are sealed
 state(a).pluck(path) // acts like a cursor for a(), path can be str or arr 
