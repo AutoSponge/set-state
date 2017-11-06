@@ -21,10 +21,17 @@
   },
   "homepage": "https://github.com/AutoSponge/set-state#readme",
   "devDependencies": {
+    "benchmark": "^2.1.4",
     "codecov": "^2.3.1",
+    "microtime": "^2.1.6",
     "nyc": "^10.3.2",
     "prettier-standard": "^5.1.0",
     "semantic-release": "^6.3.6",
     "tape": "^4.8.0"
+  },
+  "dependencies": {
+    "callable-instance": "^1.0.0",
+    "extensible-function": "^1.1.1",
+    "memwatch-next": "^0.3.0"
   }
 }
