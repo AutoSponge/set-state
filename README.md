@@ -83,6 +83,7 @@ state(a).mapcat(fn) // alias for flatMap
 state(a).concat(b, ...c) // state(() => [a(), b(), ...c()])
 state(a).reduce(fn, b) // state(() => b(fn(b(), a()))), b is optional
 state(a).ap(b) // state(() => b()(a())); applicative is similar to map but b is state(() => fn)
+state(a).either(f, g) // state(() => f(a()) || g(a()))
 
 // utility methods
 state(a).freeze() // state(a) will no longer update, the value is still a
