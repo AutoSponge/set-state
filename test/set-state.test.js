@@ -1,5 +1,5 @@
 const test = require('tape')
-const state = require('../')
+const state = require('../mixin-state')
 
 test('set-state interface', t => {
   t.plan(1)
