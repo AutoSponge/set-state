@@ -11,6 +11,7 @@ memwatch.on('leak', info => console.log('-----LEAK-----\n', info))
 suite
   .add('State test', function () {
     memwatch.gc()
+    const hd = new memwatch.HeapDiff()
     let count = 1000
     const nodes = []
     while (count--) {
@@ -30,9 +31,9 @@ suite
     assert(flat() === 499500)
     nodes[0](10)
     assert(flat() === 509500)
+    diff = hd.end()
   })
   .add('CallableState test', function () {
-    memwatch.gc()
     let count = 1000
     const nodes = []
     while (count--) {
@@ -54,7 +55,6 @@ suite
     assert(flat() === 509500)
   })
   .add('ProxyState test', function () {
-    memwatch.gc()
     let count = 1000
     const nodes = []
     while (count--) {
@@ -98,6 +98,7 @@ suite
     assert(flat() === 509500)
   })
   .on('cycle', function (event) {
+    memwatch.gc()  
     console.log(String(event.target))
   })
   .on('complete', function () {

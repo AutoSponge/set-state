@@ -80,6 +80,25 @@ const mixin = {
   toString: {value: valueOf, writable: false},
   toJSON: {value: nodeToJSON, writable: false}
 }
+const mixin2 = {
+  is: NODE,
+  thunk,
+  on,
+  ap,
+  map,
+  concat,
+  flatMap,
+  mapcat: flatMap,
+  reduce,
+  pluck,
+  either,
+  seal,
+  freeze,
+  end: freeze,
+  valueOf,
+  toString: valueOf,
+  toJSON: nodeToJSON
+}
 
 const state = compute => {
   if (isNode(compute)) return compute
@@ -121,12 +140,11 @@ const state = compute => {
     }
     return node.value
   }
-  Object.defineProperties(node, {
-    listeners: {value: new Set(), writable: false},
-    dependents: {value: new Set(), writable: false},
-    dependencies: {value: new Set(), writable: true},    
-    ...mixin
-  })
+  // Object.defineProperties(node, mixin)
+  Object.assign(node, mixin2)
+  node.listeners = new Set()
+  node.dependents = new Set()
+  node.dependencies = new Set()
   node(compute)
   return node
 }
