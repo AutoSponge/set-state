@@ -31,10 +31,13 @@ test('set-state.of().on()', t => {
   cancel()
   node(2)
   const bound = state.of()
-  const obj = {value: bound, setValue: function (n) {
-    count++
-    return this.value(n)
-  }}
+  const obj = {
+    value: bound,
+    setValue: function (n) {
+      count++
+      return this.value(n)
+    }
+  }
   const input = state.of(0)
   input.on(obj, 'setValue')
   t.equal(obj.value(), undefined)
@@ -329,15 +332,22 @@ test('set-state.of(a) implements toString and valueOf', t => {
 
 test('set-state.of(a).flatMap returns state.of(() => [...a].map(fn))', t => {
   t.plan(2)
-  const list = state.of([{ b: [1, 2] }, { b: [3, 4] }])
+  const list = state.of([{ b: [1, 2] }, { b: [3, 4] }, { b: [] }])
   const flat = list.flatMap(a => a.b)
   t.deepEqual(flat(), [1, 2, 3, 4])
-  list([{ b: [1] }, { b: [3] }, { b: [5] }])
+  list([{ b: [1] }, { b: [3] }, { b: [] }, { b: [5] }])
   t.deepEqual(flat(), [1, 3, 5])
 })
 
+test('set-state.of(a).pluck() returns state.of(a)', t => {
+  t.plan(1)
+  const s1 = state.of({})
+  const s2 = s1.pluck()
+  t.equal(s1(), s2())
+})
+
 test('set-state.of(a).pluck(path) returns state.of(() => a[path])', t => {
-  t.plan(9)  
+  t.plan(9)
   const obj1 = { a: { b: { c: 'hello' } } }
   const obj2 = { a: { b: { c: 'goodbye' } } }
   const obj3 = { a: {} }
@@ -361,7 +371,7 @@ test('set-state.of(a).pluck(path) returns state.of(() => a[path])', t => {
 test('set-state.of(a).pluck(path) is quiet', t => {
   t.plan(1)
   const obj = state.of()
-  obj.pluck('a.b.c').on((n) => t.equal(n, 'hello'))
+  obj.pluck('a.b.c').on(n => t.equal(n, 'hello'))
   obj({ a: { b: { c: 'hello' } } })
   obj({ a: { b: { c: 'hello', d: 'world' } } })
 })
@@ -417,7 +427,7 @@ test('projections of state should be sealed', t => {
   t.true(state.isSealed(a.reduce(n => n + 1)))
   t.true(state.isSealed(a.pluck([])))
   t.true(state.isSealed(c.flatMap(n => n + 1)))
-  t.true(state.isSealed(state.combine({a, b})))
+  t.true(state.isSealed(state.combine({ a, b })))
   t.true(state.isSealed(state.merge([a, b])))
   t.true(state.isSealed(a.either(n => n, () => 2)))
 })
@@ -433,3 +443,73 @@ test('isFrozen', t => {
   t.true(state.isFrozen(b))
 })
 
+test('set-state.of(a).push(f) passes value', async t => {
+  t.plan(1)
+  const a = state.of(0)
+  const f = n => n + 1
+  await a.push(f)
+  t.true(a(), 1)
+})
+
+test('set-state.of(a).push(f, err)', async t => {
+  t.plan(1)
+  const a = state.of()
+  const f = () => Promise.reject('rejected promise handled')
+  const err = e => t.pass(e)
+  await a.push(f, err)
+})
+
+test('set-state.of(a).push(f) throws', async t => {
+  t.plan(1)
+  const a = state.of()
+  const f = () => Promise.reject('rejected promise thrown')
+  try {
+    await a.push(f)
+  } catch (e) {
+    t.pass(e)
+  }
+})
+
+test('set-state.of(() => a() + 1).push(f) throws', async t => {
+  t.plan(1)
+  const a = state.of(0)
+  const b = state.of(() => a() + 1)
+  const f = n => n + 1
+  try {
+    await b.push(f)
+    t.fail()
+  } catch (e) {
+    t.pass(e)
+  }
+})
+
+test('set-state.of(a).push(f).push(f) throws', async t => {
+  t.plan(1)
+  const a = state.of(0)
+  const f = () => new Promise(() => {})
+  try {
+    a.push(f)
+    await a.push(f)
+  } catch (e) {
+    t.pass(e)
+  }
+})
+
+test('set-state.of(a).push(f) awaits f, updates b', t => {
+  t.plan(2)
+  const a = state.of({ json: 'old' })
+  const b = a.pluck('json')
+  const f = () => Promise.resolve({ json: 'new' })
+  t.equal(b(), 'old')
+  b.on(val => t.equal(val, 'new'))
+  a.push(f)
+})
+
+test(`const a = state(1)
+const b = state(() => a() + 1)
+a(() => b() + 1)`, t => {
+  t.plan(1)
+  const a = state(1)
+  const b = state(() => a() + 1)
+  t.throws(() => a(() => b() + 1))
+})

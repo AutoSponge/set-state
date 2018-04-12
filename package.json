@@ -1,10 +1,10 @@
 {
   "name": "set-state",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "simple state management",
   "main": "index.js",
   "scripts": {
-    "test": "nyc tape test/**/*.js",
+    "test": "nyc tape test/**/*.js | tap-spec",
     "cover": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
     "cover:dev": "nyc report --reporter=html",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post"
@@ -25,6 +25,7 @@
     "nyc": "^10.3.2",
     "prettier-standard": "^5.1.0",
     "semantic-release": "^6.3.6",
+    "tap-spec": "^4.1.1",
     "tape": "^4.8.0"
   }
 }
