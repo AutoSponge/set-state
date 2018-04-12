@@ -511,5 +511,5 @@ a(() => b() + 1)`, t => {
   t.plan(1)
   const a = state(1)
   const b = state(() => a() + 1)
-  t.throws(a(() => b() + 1))
+  t.throws(() => a(() => b() + 1))
 })
